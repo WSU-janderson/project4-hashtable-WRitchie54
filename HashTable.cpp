@@ -104,12 +104,11 @@ bool HashTable::insert(std::string key, size_t value) {
 
     //Resize vector if load rating is greater than 0.5 NEED TO REMAP INTS STILL
     if (this->alpha() > 0.5) {
-        tableData.resize(size_t(this->capacity())*2);
         probeOffsets.resize(this->capacity(), -1);
         resized = true;
     }
 
-    if ((probeOffsets[0] = -1) or resized) {
+    if ((probeOffsets[0] == -1) or resized) {
         int startNumber = 0;
 
         if (resized) {
@@ -135,6 +134,36 @@ bool HashTable::insert(std::string key, size_t value) {
                 }
             }
         }
+    }
+
+    //Make new vector table and insert current keys into it with new locations based off resize.
+    //Set tableData to this new vector at end so that it has the new locations
+    if (resized) {
+        std::vector<HashTableBucket> newDataTable;
+        newDataTable.resize(size_t(this->capacity()) * 2);
+        std::vector<std::string> curKeyList = this->keys();
+
+        for (int i = 0; i < curKeyList.capacity() - 1; i++) {
+            size_t curKeyIndex = this->getIndex(curKeyList[i]).value();
+
+            std::string curKey = this->tableData.at(curKeyIndex).getKey();
+            int curValue = this->tableData.at(curKeyIndex).getValue();
+
+            size_t home = hash(curKey);
+            //Probe for proper location to insert key value pair
+            for (size_t i = 0; i < newDataTable.capacity() - 1; i++) {
+                size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
+
+                //If empty load data into bucket and return out of fuction
+                if (newDataTable.at(vectorIndex).isEmpty()) {
+                    newDataTable.at(vectorIndex).load(curKey, curValue);
+                    return true;
+                }
+            }
+        }
+
+        this->tableData.clear();
+        this->tableData = newDataTable;
     }
 
 
