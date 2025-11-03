@@ -20,10 +20,10 @@ class HashTableBucket{
         bool isEmptySinceStart() const;
         void setBucketType(BucketType type) const;
         std::string getKey() const;
-        size_t getValueRef();
+        // size_t getValueRef();
         size_t getValue() const;
         friend std::ostream& operator<<(std::ostream& os, const HashTableBucket& bucket) {
-
+            return os;
         };
 };
 
@@ -34,18 +34,19 @@ class HashTable {
         std::vector<size_t> probeOffsets;
 
     public:
-        HashTable(size_t initCapacity = 8);
+        explicit HashTable(size_t initCapacity = 8);
         bool insert(std::string key, size_t value);
         bool remove(std::string key);
         bool contains(const std::string& key) const;
         std::optional<int> get(const std::string& key) const;
         size_t capacity() const;
-        int& operator[](const std::string& key);
+        // int& operator[](const std::string& key);
         std::vector<std::string> keys() const;
         double alpha() const;
         size_t size() const;
         size_t hash(std::string key) const;
         std::optional<int> getIndex(const std::string& key) const;
+        void setUpProbeOffsets(size_t startNumber);
 
         /**
 * operator<< is another example of operator overloading in C++, similar to
@@ -67,6 +68,6 @@ Bucket
 * 11: <Hugo, 42108>
 */
     friend std::ostream& operator<<(std::ostream& os, const HashTable& hashTable) {
-
+        return os;
     }
 };

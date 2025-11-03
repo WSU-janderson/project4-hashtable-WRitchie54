@@ -67,12 +67,12 @@ std::string HashTableBucket::getKey() const{
     return this->key;
 }
 
-/*
- *Gets value from bucket
- */
-size_t &HashTableBucket::getValueRef(){
-    return this->value;
-}
+// /*
+//  *Gets value from bucket
+//  */
+// size_t &HashTableBucket::getValueRef(){
+//     return this->value;
+// }
 
 /*
  *Gets value from bucket
@@ -98,6 +98,12 @@ HashTable::HashTable(size_t initCapacity) {
 bool HashTable::insert(std::string key, size_t value) {
     bool resized = false;
 
+    if (probeOffsets[0] == -1) {
+        size_t startNumber = 0;
+        this->setUpProbeOffsets(startNumber);
+    }
+
+
     if (this->contains(key)) {
         return false;
     }
@@ -108,39 +114,16 @@ bool HashTable::insert(std::string key, size_t value) {
         resized = true;
     }
 
-    if ((probeOffsets[0] == -1) or resized) {
-        int startNumber = 0;
-
-        if (resized) {
-            startNumber = size_t(this->capacity())/2;
-        }
-
-        for (size_t i = startNumber; i < this->capacity()-1;  i++) {
-            while (probeOffsets[i] == -1) {
-                size_t num = (rand() % size_t(this->capacity())) + startNumber;
-                bool found = false;
-
-                //search vector to see if current rand has been used
-                for (size_t j = startNumber;  j<i; j++) {
-                    if (num == probeOffsets[j]) {
-                        found = true;
-                        break;
-                    }
-                }
-
-                //if not already in use assign random number
-                if (!found) {
-                    probeOffsets[i] = num;
-                }
-            }
-        }
+    if (resized) {
+        size_t startNumber = this->capacity() / 2;
+        setUpProbeOffsets(startNumber);
     }
 
     //Make new vector table and insert current keys into it with new locations based off resize.
     //Set tableData to this new vector at end so that it has the new locations
     if (resized) {
         std::vector<HashTableBucket> newDataTable;
-        newDataTable.resize(size_t(this->capacity()) * 2);
+        newDataTable.resize(this->capacity() * 2);
         std::vector<std::string> curKeyList = this->keys();
 
         for (int i = 0; i < curKeyList.capacity() - 1; i++) {
@@ -238,19 +221,19 @@ If the key is not
 * results in undefined behavior. Simply put, you do not need to address attempts
 * to access keys not in the table inside the bracket operator method.
 */
-int& HashTable::operator[](const std::string& key) {
-    size_t home = hash(key); //
-    //Probe for proper location to remove key value pair
-    for (size_t i = 0; i < this->capacity()-1; i++) {
-        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
-
-        if (this->tableData.at(vectorIndex).getKey() == key) {
-            int& ref = this->tableData.at(vectorIndex).getValue();
-            return ref;
-        }
-    }
-
-}
+// int& HashTable::operator[](const std::string& key) {
+//     size_t home = hash(key); //
+//     //Probe for proper location to remove key value pair
+//     for (size_t i = 0; i < this->capacity()-1; i++) {
+//         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
+//
+//         if (this->tableData.at(vectorIndex).getKey() == key) {
+//             int& ref = this->tableData.at(vectorIndex).getValue();
+//             return ref;
+//         }
+//     }
+//
+// }
 
 /**
 * keys returns a std::vector (C++ version of ArrayList, or simply list/array)
@@ -321,4 +304,26 @@ std::optional<int> HashTable::getIndex(const std::string& key) const {
         }
     }
     return std::nullopt;
+}
+
+void HashTable::setUpProbeOffsets(size_t startNumber) {
+    for (size_t i = startNumber; i < this->capacity()-1;  i++) {
+        while (this->probeOffsets[i] == -1) {
+            size_t num = (rand() % size_t(this->capacity())) + startNumber;
+            bool found = false;
+
+            //search vector to see if current rand has been used
+            for (size_t j = startNumber;  j<i; j++) {
+                if (num == this->probeOffsets[j]) {
+                    found = true;
+                    break;
+                }
+            }
+
+            //if not already in use assign random number
+            if (!found) {
+                this->probeOffsets[i] = num;
+            }
+        }
+    }
 }
