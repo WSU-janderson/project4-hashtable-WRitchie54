@@ -90,9 +90,8 @@ HashTable::HashTable(size_t initCapacity) {
     this->numCapacity = initCapacity;
     this->numSize = 0;
     tableData.resize(initCapacity);
-    probeOffsets.resize(initCapacity, -1);
-    this->setUpProbeOffsets();
-
+    probeOffsets = this->setUpProbeOffsets(true);
+    srand(time(nullptr));
 }
 /**
 * Insert a new key-value pair into the table. Duplicate keys are NOT allowed. The
@@ -101,30 +100,40 @@ HashTable::HashTable(size_t initCapacity) {
 * should return false
 */
 bool HashTable::insert(std::string key, size_t value) {
-    bool resized = false;
-
+    bool result = false;
     if (this->contains(key)) {
-        return false;
+        return result;
+    }
+
+    size_t home = hash(key); //currently using a multiplcative string hash function similar to described in zybooks
+    //Probe for proper location to insert key value pair
+    for (size_t i = 0; i < this->capacity(); i++) {
+        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
+
+        if (tableData.at(vectorIndex).getKey() == key) {
+            result = false;
+            break;
+        }
+
+        //If empty load data into bucket and return out of fuction
+        if (tableData.at(vectorIndex).isEmpty()) {
+            tableData.at(vectorIndex).load(key, value);
+            this->numSize++;
+            result = true;
+            break;
+        }
     }
 
     //Resize vector if load rating is greater than 0.5 NEED TO REMAP INTS STILL
     if (this->alpha() > 0.5) {
-        probeOffsets.resize(this->capacity(), -1);
-        resized = true;
-    }
-
-    if (resized) {
-        setUpProbeOffsets();
-    }
-
-    //Make new vector table and insert current keys into it with new locations based off resize.
-    //Set tableData to this new vector at end so that it has the new locations
-    if (resized) {
+        //Make new vector table and insert current keys into it with new locations based off resize.
+        //Set tableData to this new vector at end so that it has the new locations
+        std::vector<size_t> newProbeOffsets = this->setUpProbeOffsets(false);
         std::vector<HashTableBucket> newDataTable;
         newDataTable.resize(this->capacity() * 2);
         std::vector<std::string> curKeyList = this->keys();
 
-        for (int i = 0; i < curKeyList.capacity() - 1; i++) {
+        for (int i = 0; i < curKeyList.capacity(); i++) {
             size_t curKeyIndex = this->getIndex(curKeyList[i]).value();
 
             std::string curKey = this->tableData.at(curKeyIndex).getKey();
@@ -132,47 +141,32 @@ bool HashTable::insert(std::string key, size_t value) {
 
             size_t home = hash(curKey);
             //Probe for proper location to insert key value pair
-            for (size_t i = 0; i < newDataTable.capacity() - 1; i++) {
-                size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
+            for (size_t i = 0; i < newDataTable.capacity(); i++) {
+                size_t vectorIndex = (home + newProbeOffsets[i]) % this->capacity();
 
                 //If empty load data into bucket and return out of fuction
                 if (newDataTable.at(vectorIndex).isEmpty()) {
                     newDataTable.at(vectorIndex).load(curKey, curValue);
-                    return true;
+                    break;
                 }
             }
         }
 
         this->tableData.clear();
         this->tableData = newDataTable;
+        this->probeOffsets.clear();
+        this->probeOffsets = newProbeOffsets;
         this->numCapacity *= 2;
     }
-
-
-    size_t home = hash(key); //currently using a multiplcative string hash function similar to described in zybooks
-    //Probe for proper location to insert key value pair
-    for (size_t i = 0; i < this->capacity()-1; i++) {
-        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
-
-        if (tableData.at(vectorIndex).getKey() == key) {
-            return false;
-        }
-
-        //If empty load data into bucket and return out of fuction
-        if (tableData.at(vectorIndex).isEmpty()) {
-            tableData.at(vectorIndex).load(key, value);
-            this->numSize++;
-            return true;
-        }
-    }
+    return result;
 }
 /**
 * If the key is in the table, remove will “erase” the key-value pair from the
 * table. This might just be marking a bucket as empty-after-remove
 */
 bool HashTable::remove(std::string key) {
-    if (size_t curKey = this->getIndex(key) != std::nullopt) {
-        this->tableData.at(curKey).setBucketType(BucketType::EAR);
+    if (std::optional<int> curKey = this->getIndex(key); curKey != std::nullopt) {
+        this->tableData.at(curKey.value()).setBucketType(BucketType::EAR);
         return true;
     }
     else {
@@ -199,8 +193,8 @@ bool HashTable::contains(const std::string& key) const {
 * exception if the key is not found.
 */
 std::optional<int> HashTable::get(const std::string& key) const {
-    if (size_t curKey = this->getIndex(key) != std::nullopt) {
-        return this->tableData.at(curKey).getValue();
+    if (std::optional<int> curKey = this->getIndex(key); curKey != std::nullopt) {
+        return this->tableData.at(curKey.value()).getValue();
     }
     else {
         return std::nullopt;
@@ -243,7 +237,7 @@ std::vector<std::string> HashTable::keys() const {
     std::vector<std::string> curKeyList;
     curKeyList.resize(this->size());
     int curKeyIndex = 0;
-    for (size_t i = 0; i < this->capacity()-1; i++) {
+    for (size_t i = 0; i < this->capacity(); i++) {
         if (!this->tableData.at(i).isEmpty()) {
             curKeyList[curKeyIndex] = this->tableData.at(i).getKey();
             curKeyIndex++;
@@ -295,7 +289,7 @@ size_t HashTable::hash(std::string key) const {
 std::optional<int> HashTable::getIndex(const std::string& key) const {
     size_t home = hash(key);
     //Probe for proper location to remove key value pair
-    for (size_t i = 0; i < this->capacity()-1; i++) {
+    for (size_t i = 0; i < this->capacity(); i++) {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
 
         if (this->tableData.at(vectorIndex).getKey() == key) {
@@ -309,15 +303,25 @@ std::optional<int> HashTable::getIndex(const std::string& key) const {
     return std::nullopt;
 }
 
-void HashTable::setUpProbeOffsets() {
-    for (size_t i = 0; i < this->capacity()-1;  i++) {
-        while (this->probeOffsets[i] == -1) {
-            size_t num = rand() % size_t(this->capacity());
+std::vector<size_t> HashTable::setUpProbeOffsets(bool init) {
+    std::vector<size_t> newProbeOffsets;
+    size_t newCapacity = 0;
+    if (init) {
+        newCapacity = this->capacity();
+    }
+    else {
+        newCapacity = this->capacity() * 2;
+    }
+
+    newProbeOffsets.resize(newCapacity, -1);
+    for (size_t i = 0; i < newCapacity;  i++) {
+        while (newProbeOffsets.at(i) == -1) {
+            size_t num = rand() % size_t(newCapacity);
             bool found = false;
 
             //search vector to see if current rand has been used
-            for (size_t j = 0;  j<i; j++) {
-                if (num == this->probeOffsets[j]) {
+            for (size_t j = 0;  j < i; j++) {
+                if (num == newProbeOffsets[j]) {
                     found = true;
                     break;
                 }
@@ -325,8 +329,9 @@ void HashTable::setUpProbeOffsets() {
 
             //if not already in use assign random number
             if (!found) {
-                this->probeOffsets[i] = num;
+                newProbeOffsets[i] = num;
             }
         }
     }
+    return newProbeOffsets;
 }

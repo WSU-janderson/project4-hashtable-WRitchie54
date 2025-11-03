@@ -49,7 +49,7 @@ class HashTable {
         size_t size() const;
         size_t hash(std::string key) const;
         std::optional<int> getIndex(const std::string& key) const;
-        void setUpProbeOffsets();
+        std::vector<size_t> setUpProbeOffsets(bool init);
 
         /**
 * operator<< is another example of operator overloading in C++, similar to
@@ -75,7 +75,7 @@ Bucket
         std::vector<std::string> curKeyList = hashTable.keys();
 
 
-        for (size_t i = 0; i < curKeyList.size()-1; i++) {
+        for (size_t i = 0; i < curKeyList.size(); i++) {
             std::string curKey = curKeyList[i];
             size_t curIndex = hashTable.getIndex(curKey).value();
             size_t curValue = hashTable.get(curKey).value();
