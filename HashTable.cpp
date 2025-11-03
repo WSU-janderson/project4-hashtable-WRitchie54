@@ -4,6 +4,7 @@
 
 #include "HashTable.h"
 
+#include <algorithm>
 #include <optional>
 #include <string>
 
@@ -36,6 +37,15 @@ void HashTableBucket::load(std::string key, int value) {
 */
 bool HashTableBucket::isEmpty() const {
     if ((this->type == BucketType::ESS) or (this->type == BucketType::EAR)){
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool HashTableBucket::isEmptySinceStart() const {
+    if (this->type == BucketType::ESS){
         return true;
     }
     else {
@@ -127,10 +137,15 @@ bool HashTable::insert(std::string key, size_t value) {
         }
     }
 
-    size_t home = key % this->capacity;
+
+    size_t home = hash(key); //currently using a multiplcative string hash function similar to described in zybooks
     //Probe for proper location to insert key value pair
     for (size_t i = 0; i < this->capacity()-1; i++) {
         size_t vectorIndex = ( + probeOffsets[i]) % this->capacity();
+
+        if (tableData.at(vectorIndex).getKey() == key) {
+            return false;
+        }
 
         //If empty load data into bucket and return out of fuction
         if (tableData.at(vectorIndex).isEmpty()) {
@@ -145,8 +160,8 @@ bool HashTable::insert(std::string key, size_t value) {
 * table. This might just be marking a bucket as empty-after-remove
 */
 bool HashTable::remove(std::string key) {
-    if (this->contains(key)) {
-
+    if (size_t curKey = this->getIndex(key) != std::nullopt) {
+        this->tableData.at(curKey).setBucketType(BucketType::EAR);
         return true;
     }
     else {
@@ -158,15 +173,10 @@ bool HashTable::remove(std::string key) {
 * the table.
 */
 bool HashTable::contains(const std::string& key) const {
-    //Probe for location of key
-    for (size_t i = 0; i < this->capacity()-1; i++) {
-        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
-
-
-        if (this->tableData.at(vectorIndex).getKey() == key) {
-            return true;
-        }
+    if (this->getIndex(key) != std::nullopt) {
+        return true;
     }
+    return false;
 }
 /**
 * If the key is found in the table, find will return the value associated with
@@ -178,15 +188,12 @@ bool HashTable::contains(const std::string& key) const {
 * exception if the key is not found.
 */
 std::optional<int> HashTable::get(const std::string& key) const {
-    //Probe for proper location to remove key value pair
-    for (size_t i = 0; i < this->capacity()-1; i++) {
-        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
-
-        if (this->tableData.at(vectorIndex).getKey() == key) {
-            return this->tableData.at(vectorIndex).getValue();
-        }
+    if (size_t curKey = this->getIndex(key) != std::nullopt) {
+        return this->tableData.at(curKey).getValue();
     }
-    return std::nullopt;
+    else {
+        return std::nullopt;
+    }
 }
 /**
 * The bracket operator lets us access values in the map using a familiar syntax,
@@ -203,6 +210,7 @@ If the key is not
 * to access keys not in the table inside the bracket operator method.
 */
 int& HashTable::operator[](const std::string& key) {
+    size_t home = hash(key); //
     //Probe for proper location to remove key value pair
     for (size_t i = 0; i < this->capacity()-1; i++) {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
@@ -221,7 +229,12 @@ int& HashTable::operator[](const std::string& key) {
 * the same as the size of the hash table.
 */
 std::vector<std::string> HashTable::keys() const {
-
+    std::vector<std::string> curKeyList;
+    curKeyList.resize(this->size());
+    for (size_t i = 0; i < this->size()-1; i++) {
+        curKeyList[i] = this->tableData.at(i).getKey();
+    }
+    return curKeyList;
 }
 /**
 * alpha returns the current load factor of the table, or size/capacity. Since
@@ -233,7 +246,7 @@ The time complexity for
 * this method must be O(1).
 */
 double HashTable::alpha() const {
-    return static_cast<double>(this->size())/double(this->capacity());
+    return static_cast<double>(this->size())/static_cast<double>(this->capacity());
 }
 
 /**
@@ -249,4 +262,34 @@ size_t HashTable::capacity() const {
 */
 size_t HashTable::size() const {
     return this->tableData.size();
+}
+
+//Multiplicative hash function found idea from the zybooks
+size_t HashTable::hash(std::string key) const {
+
+    size_t hashedValue = 0;
+
+    for(char character : key) {
+        hashedValue = (hashedValue * 33) +  character;
+    }
+
+    return hashedValue % this->capacity();
+}
+
+//get index returns the index of where a key should've been place
+std::optional<int> HashTable::getIndex(const std::string& key) const {
+    size_t home = hash(key);
+    //Probe for proper location to remove key value pair
+    for (size_t i = 0; i < this->capacity()-1; i++) {
+        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
+
+        if (this->tableData.at(vectorIndex).getKey() == key) {
+            return i;
+        }
+
+        if (this->tableData[i].isEmptySinceStart()) {
+            return std::nullopt;
+        }
+    }
+    return std::nullopt;
 }

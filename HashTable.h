@@ -17,6 +17,7 @@ class HashTableBucket{
         HashTableBucket(std::string key, int value);
         void load(std::string key, int value);
         bool isEmpty() const;
+        bool isEmptySinceStart() const;
         void setBucketType(BucketType type) const;
         std::string getKey() const;
         size_t getValueRef();
@@ -43,8 +44,10 @@ class HashTable {
         std::vector<std::string> keys() const;
         double alpha() const;
         size_t size() const;
+        size_t hash(std::string key) const;
+        std::optional<int> getIndex(const std::string& key) const;
 
-    /**
+        /**
 * operator<< is another example of operator overloading in C++, similar to
 * operator[]. The friend keyword only needs to appear in the class declaration,
 * but not the definition. In addition, operator<< is not a method of HashTable,
