@@ -91,7 +91,7 @@ HashTable::HashTable(size_t initCapacity) {
     this->numSize = 0;
     tableData.resize(initCapacity);
     probeOffsets = this->setUpProbeOffsets(true);
-    srand(time(nullptr));
+    // srand(time(nullptr));
 }
 /**
 * Insert a new key-value pair into the table. Duplicate keys are NOT allowed. The
@@ -135,14 +135,13 @@ bool HashTable::insert(std::string key, size_t value) {
 
         for (int i = 0; i < curKeyList.capacity(); i++) {
             size_t curKeyIndex = this->getIndex(curKeyList[i]).value();
-
             std::string curKey = this->tableData.at(curKeyIndex).getKey();
             int curValue = this->tableData.at(curKeyIndex).getValue();
 
             size_t home = hash(curKey);
             //Probe for proper location to insert key value pair
             for (size_t i = 0; i < newDataTable.capacity(); i++) {
-                size_t vectorIndex = (home + newProbeOffsets[i]) % this->capacity();
+                size_t vectorIndex = (home + newProbeOffsets[i]) % newDataTable.capacity();
 
                 //If empty load data into bucket and return out of fuction
                 if (newDataTable.at(vectorIndex).isEmpty()) {
