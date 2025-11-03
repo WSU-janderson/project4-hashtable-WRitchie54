@@ -91,7 +91,6 @@ HashTable::HashTable(size_t initCapacity) {
     this->numSize = 0;
     tableData.resize(initCapacity);
     probeOffsets = this->setUpProbeOffsets(true);
-    srand(time(nullptr));
 }
 /**
 * Insert a new key-value pair into the table. Duplicate keys are NOT allowed. The
@@ -275,10 +274,10 @@ size_t HashTable::size() const {
 
 //Multiplicative hash function found idea from the zybooks
 size_t HashTable::hash(std::string key, size_t curCapacity) const {
-    size_t hashedValue = 0;
+    size_t hashedValue = 5381;
 
     for(char character : key) {
-        hashedValue = 5381 + (hashedValue * 34) + character;
+        hashedValue =  (hashedValue * 33) + character;
     }
 
     return hashedValue % curCapacity;
@@ -306,16 +305,16 @@ std::vector<size_t> HashTable::setUpProbeOffsets(bool init) {
     std::vector<size_t> newProbeOffsets;
     size_t newCapacity = 0;
     if (init) {
-        newCapacity = this->capacity();
+        newCapacity = this->capacity() - 1;
     }
     else {
-        newCapacity = this->capacity() * 2;
+        newCapacity = (this->capacity() * 2) - 1;
     }
 
     newProbeOffsets.resize(newCapacity, -1);
     for (size_t i = 0; i < newCapacity;  i++) {
         while (newProbeOffsets.at(i) == -1) {
-            size_t num = rand() % size_t(newCapacity);
+            size_t num = rand() % size_t(newCapacity) + 1;
             bool found = false;
 
             //search vector to see if current rand has been used
