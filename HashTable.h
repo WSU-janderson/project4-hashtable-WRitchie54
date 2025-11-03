@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <ostream>
 /**
  * HashTable.h
  */
@@ -32,6 +33,8 @@ class HashTable {
     private:
         std::vector<HashTableBucket> tableData;
         std::vector<size_t> probeOffsets;
+        size_t numCapacity;
+        size_t numSize;
 
     public:
         explicit HashTable(size_t initCapacity = 8);
@@ -46,7 +49,7 @@ class HashTable {
         size_t size() const;
         size_t hash(std::string key) const;
         std::optional<int> getIndex(const std::string& key) const;
-        void setUpProbeOffsets(size_t startNumber);
+        void setUpProbeOffsets();
 
         /**
 * operator<< is another example of operator overloading in C++, similar to
@@ -67,7 +70,19 @@ Bucket 2: <Juliet, 1623>
 Bucket
 * 11: <Hugo, 42108>
 */
+    //WILLL CHANGE LATER WHEN OPERATOR REFRENCE RETURN WORKS AND CAN USE FRIEND OPERATOR OF HASHTABLEBUCKET TO MAKE STREAM RETURN
     friend std::ostream& operator<<(std::ostream& os, const HashTable& hashTable) {
+        std::vector<std::string> curKeyList = hashTable.keys();
+
+
+        for (size_t i = 0; i < curKeyList.size()-1; i++) {
+            std::string curKey = curKeyList[i];
+            size_t curIndex = hashTable.getIndex(curKey).value();
+            size_t curValue = hashTable.get(curKey).value();
+
+            os << "Bucket " << curIndex << ": <" << curKey << ", " << curValue << ">" << std::endl;
+        }
+
         return os;
     }
 };

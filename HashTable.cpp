@@ -87,7 +87,12 @@ size_t HashTableBucket::getValue() const{
 * necessary. If no capacity is given, it defaults to 8 initially
 */
 HashTable::HashTable(size_t initCapacity) {
+    this->numCapacity = initCapacity;
+    this->numSize = 0;
     tableData.resize(initCapacity);
+    probeOffsets.resize(initCapacity, -1);
+    this->setUpProbeOffsets();
+
 }
 /**
 * Insert a new key-value pair into the table. Duplicate keys are NOT allowed. The
@@ -97,12 +102,6 @@ HashTable::HashTable(size_t initCapacity) {
 */
 bool HashTable::insert(std::string key, size_t value) {
     bool resized = false;
-
-    if (probeOffsets[0] == -1) {
-        size_t startNumber = 0;
-        this->setUpProbeOffsets(startNumber);
-    }
-
 
     if (this->contains(key)) {
         return false;
@@ -115,8 +114,7 @@ bool HashTable::insert(std::string key, size_t value) {
     }
 
     if (resized) {
-        size_t startNumber = this->capacity() / 2;
-        setUpProbeOffsets(startNumber);
+        setUpProbeOffsets();
     }
 
     //Make new vector table and insert current keys into it with new locations based off resize.
@@ -147,13 +145,14 @@ bool HashTable::insert(std::string key, size_t value) {
 
         this->tableData.clear();
         this->tableData = newDataTable;
+        this->numCapacity *= 2;
     }
 
 
     size_t home = hash(key); //currently using a multiplcative string hash function similar to described in zybooks
     //Probe for proper location to insert key value pair
     for (size_t i = 0; i < this->capacity()-1; i++) {
-        size_t vectorIndex = ( + probeOffsets[i]) % this->capacity();
+        size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
 
         if (tableData.at(vectorIndex).getKey() == key) {
             return false;
@@ -162,10 +161,10 @@ bool HashTable::insert(std::string key, size_t value) {
         //If empty load data into bucket and return out of fuction
         if (tableData.at(vectorIndex).isEmpty()) {
             tableData.at(vectorIndex).load(key, value);
+            this->numSize++;
             return true;
         }
     }
-
 }
 /**
 * If the key is in the table, remove will “erase” the key-value pair from the
@@ -243,8 +242,12 @@ If the key is not
 std::vector<std::string> HashTable::keys() const {
     std::vector<std::string> curKeyList;
     curKeyList.resize(this->size());
-    for (size_t i = 0; i < this->size()-1; i++) {
-        curKeyList[i] = this->tableData.at(i).getKey();
+    int curKeyIndex = 0;
+    for (size_t i = 0; i < this->capacity()-1; i++) {
+        if (!this->tableData.at(i).isEmpty()) {
+            curKeyList[curKeyIndex] = this->tableData.at(i).getKey();
+            curKeyIndex++;
+        }
     }
     return curKeyList;
 }
@@ -266,14 +269,14 @@ double HashTable::alpha() const {
 * complexity for this algorithm must be O(1).
 */
 size_t HashTable::capacity() const {
-    return this->tableData.capacity();
+    return this->numCapacity;
 }
 /**
 * The size method returns how many key-value pairs are in the hash table. The
 * time complexity for this method must be O(1)
 */
 size_t HashTable::size() const {
-    return this->tableData.size();
+    return this->numSize;
 }
 
 //Multiplicative hash function found idea from the zybooks
@@ -296,24 +299,24 @@ std::optional<int> HashTable::getIndex(const std::string& key) const {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
 
         if (this->tableData.at(vectorIndex).getKey() == key) {
-            return i;
+            return vectorIndex;
         }
 
-        if (this->tableData[i].isEmptySinceStart()) {
+        if (this->tableData[vectorIndex].isEmptySinceStart()) {
             return std::nullopt;
         }
     }
     return std::nullopt;
 }
 
-void HashTable::setUpProbeOffsets(size_t startNumber) {
-    for (size_t i = startNumber; i < this->capacity()-1;  i++) {
+void HashTable::setUpProbeOffsets() {
+    for (size_t i = 0; i < this->capacity()-1;  i++) {
         while (this->probeOffsets[i] == -1) {
-            size_t num = (rand() % size_t(this->capacity())) + startNumber;
+            size_t num = rand() % size_t(this->capacity());
             bool found = false;
 
             //search vector to see if current rand has been used
-            for (size_t j = startNumber;  j<i; j++) {
+            for (size_t j = 0;  j<i; j++) {
                 if (num == this->probeOffsets[j]) {
                     found = true;
                     break;
