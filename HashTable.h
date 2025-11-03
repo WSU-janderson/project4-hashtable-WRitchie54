@@ -47,7 +47,7 @@ class HashTable {
         std::vector<std::string> keys() const;
         double alpha() const;
         size_t size() const;
-        size_t hash(std::string key) const;
+        size_t hash(std::string key, size_t curCapacity) const;
         std::optional<int> getIndex(const std::string& key) const;
         std::vector<size_t> setUpProbeOffsets(bool init);
 
@@ -77,6 +77,9 @@ Bucket
 
         for (size_t i = 0; i < curKeyList.size(); i++) {
             std::string curKey = curKeyList[i];
+            if (curKey == "1") {
+                curKey = "1";
+            }
             size_t curIndex = hashTable.getIndex(curKey).value();
             size_t curValue = hashTable.get(curKey).value();
 

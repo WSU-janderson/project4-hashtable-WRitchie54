@@ -91,7 +91,7 @@ HashTable::HashTable(size_t initCapacity) {
     this->numSize = 0;
     tableData.resize(initCapacity);
     probeOffsets = this->setUpProbeOffsets(true);
-    // srand(time(nullptr));
+    srand(time(nullptr));
 }
 /**
 * Insert a new key-value pair into the table. Duplicate keys are NOT allowed. The
@@ -105,12 +105,12 @@ bool HashTable::insert(std::string key, size_t value) {
         return result;
     }
 
-    size_t home = hash(key); //currently using a multiplcative string hash function similar to described in zybooks
+    size_t home = hash(key, this->capacity()); //currently using a multiplcative string hash function similar to described in zybooks
     //Probe for proper location to insert key value pair
     for (size_t i = 0; i < this->capacity(); i++) {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
 
-        if (tableData.at(vectorIndex).getKey() == key) {
+        if (tableData.at(vectorIndex).getKey() == key && !tableData.at(vectorIndex).isEmpty()) {
             result = false;
             break;
         }
@@ -138,7 +138,7 @@ bool HashTable::insert(std::string key, size_t value) {
             std::string curKey = this->tableData.at(curKeyIndex).getKey();
             int curValue = this->tableData.at(curKeyIndex).getValue();
 
-            size_t home = hash(curKey);
+            size_t home = hash(curKey, newDataTable.capacity());
             //Probe for proper location to insert key value pair
             for (size_t i = 0; i < newDataTable.capacity(); i++) {
                 size_t vectorIndex = (home + newProbeOffsets[i]) % newDataTable.capacity();
@@ -166,6 +166,7 @@ bool HashTable::insert(std::string key, size_t value) {
 bool HashTable::remove(std::string key) {
     if (std::optional<int> curKey = this->getIndex(key); curKey != std::nullopt) {
         this->tableData.at(curKey.value()).setBucketType(BucketType::EAR);
+        numSize--;
         return true;
     }
     else {
@@ -273,25 +274,24 @@ size_t HashTable::size() const {
 }
 
 //Multiplicative hash function found idea from the zybooks
-size_t HashTable::hash(std::string key) const {
-
+size_t HashTable::hash(std::string key, size_t curCapacity) const {
     size_t hashedValue = 0;
 
     for(char character : key) {
-        hashedValue = (hashedValue * 33) +  character;
+        hashedValue = 5381 + (hashedValue * 34) + character;
     }
 
-    return hashedValue % this->capacity();
+    return hashedValue % curCapacity;
 }
 
 //get index returns the index of where a key should've been place
 std::optional<int> HashTable::getIndex(const std::string& key) const {
-    size_t home = hash(key);
+    size_t home = hash(key, this->capacity());
     //Probe for proper location to remove key value pair
     for (size_t i = 0; i < this->capacity(); i++) {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
 
-        if (this->tableData.at(vectorIndex).getKey() == key) {
+        if ((this->tableData.at(vectorIndex).getKey() == key) and (!this->tableData.at(vectorIndex).isEmpty())) {
             return vectorIndex;
         }
 
