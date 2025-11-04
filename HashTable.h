@@ -23,9 +23,6 @@ class HashTableBucket{
         std::string getKey() const;
         size_t& getValueRef();
         size_t getValue() const;
-        friend std::ostream& operator<<(std::ostream& os, const HashTableBucket& bucket) {
-            return os;
-        };
 };
 
 
@@ -77,9 +74,6 @@ Bucket
 
         for (size_t i = 0; i < curKeyList.size(); i++) {
             std::string curKey = curKeyList[i];
-            if (curKey == "1") {
-                curKey = "1";
-            }
             size_t curIndex = hashTable.getIndex(curKey).value();
             size_t curValue = hashTable.get(curKey).value();
 
