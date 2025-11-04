@@ -104,7 +104,7 @@ bool HashTable::insert(std::string key, size_t value) {
         return result;
     }
 
-    size_t home = hash(key, this->capacity()); //currently using a multiplcative string hash function similar to described in zybooks
+    size_t home = hash(key); //currently using a multiplcative string hash function similar to described in zybooks
     //Probe for proper location to insert key value pair
     for (size_t i = 0; i < this->capacity(); i++) {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
@@ -137,7 +137,7 @@ bool HashTable::insert(std::string key, size_t value) {
             std::string curKey = this->tableData.at(curKeyIndex).getKey();
             int curValue = this->tableData.at(curKeyIndex).getValue();
 
-            size_t home = hash(curKey, newDataTable.capacity());
+            size_t home = hash(curKey);
             //Probe for proper location to insert key value pair
             for (size_t i = 0; i < newDataTable.capacity(); i++) {
                 size_t vectorIndex = (home + newProbeOffsets[i]) % newDataTable.capacity();
@@ -213,19 +213,12 @@ If the key is not
 * results in undefined behavior. Simply put, you do not need to address attempts
 * to access keys not in the table inside the bracket operator method.
 */
-// int& HashTable::operator[](const std::string& key) {
-//     size_t home = hash(key); //
-//     //Probe for proper location to remove key value pair
-//     for (size_t i = 0; i < this->capacity()-1; i++) {
-//         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();
-//
-//         if (this->tableData.at(vectorIndex).getKey() == key) {
-//             int& ref = this->tableData.at(vectorIndex).getValue();
-//             return ref;
-//         }
-//     }
-//
-// }
+int& HashTable::operator[](const std::string& key) {
+    if (std::optional<int> curKey = this->getIndex(key); curKey != std::nullopt) {
+        int &ref = this->tableData.at(curKey.value()).getValue();
+        return ref;
+    }
+}
 
 /**
 * keys returns a std::vector (C++ version of ArrayList, or simply list/array)
@@ -272,20 +265,14 @@ size_t HashTable::size() const {
     return this->numSize;
 }
 
-//Multiplicative hash function found idea from the zybooks
-size_t HashTable::hash(std::string key, size_t curCapacity) const {
-    size_t hashedValue = 5381;
-
-    for(char character : key) {
-        hashedValue =  (hashedValue * 33) + character;
-    }
-
-    return hashedValue % curCapacity;
+//hash function
+size_t HashTable::hash(std::string key) const {
+    return std::hash<std::string>{}(key);
 }
 
 //get index returns the index of where a key should've been place
 std::optional<int> HashTable::getIndex(const std::string& key) const {
-    size_t home = hash(key, this->capacity());
+    size_t home = hash(key);
     //Probe for proper location to remove key value pair
     for (size_t i = 0; i < this->capacity(); i++) {
         size_t vectorIndex = (home + probeOffsets[i]) % this->capacity();

@@ -43,11 +43,11 @@ class HashTable {
         bool contains(const std::string& key) const;
         std::optional<int> get(const std::string& key) const;
         size_t capacity() const;
-        // int& operator[](const std::string& key);
+        int& operator[](const std::string& key);
         std::vector<std::string> keys() const;
         double alpha() const;
         size_t size() const;
-        size_t hash(std::string key, size_t curCapacity) const;
+        size_t hash(std::string key) const;
         std::optional<int> getIndex(const std::string& key) const;
         std::vector<size_t> setUpProbeOffsets(bool init);
 
