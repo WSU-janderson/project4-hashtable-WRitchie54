@@ -70,9 +70,9 @@ std::string HashTableBucket::getKey() const{
 // /*
 //  *Gets value from bucket
 //  */
-// size_t &HashTableBucket::getValueRef(){
-//     return this->value;
-// }
+size_t& HashTableBucket::getValueRef(){
+    return (this->value);
+}
 
 /*
  *Gets value from bucket
@@ -213,9 +213,9 @@ If the key is not
 * results in undefined behavior. Simply put, you do not need to address attempts
 * to access keys not in the table inside the bracket operator method.
 */
-int& HashTable::operator[](const std::string& key) {
+size_t& HashTable::operator[](const std::string& key) {
     if (std::optional<int> curKey = this->getIndex(key); curKey != std::nullopt) {
-        int &ref = this->tableData.at(curKey.value()).getValue();
+        size_t& ref = this->tableData.at(curKey.value()).getValueRef();
         return ref;
     }
 }
